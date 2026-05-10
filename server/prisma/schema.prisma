@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  password     String
+  fullName     String
+  email        String?  @unique
+  designation  String?  // e.g., Sales Operations Lead
+  timezone     String   @default("Asia/Ho_Chi_Minh")
+  bioAiContext String?  @db.Text
+  role         String   @default("staff") // admin, staff
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model StoreSettings {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phone       String?
+  address     String?  @db.Text
+  currency    String   @default("VND")
+  language    String   @default("vi")
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemConfig {
+  id           Int      @id @default(autoincrement())
+  configKey    String   @unique // e.g., "OPENAI_API_KEY", "DEFAULT_MODEL"
+  configValue  String   @db.Text
+  description  String?
+  isSensitive  Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+model SocialIntegration {
+  id           Int      @id @default(autoincrement())
+  platform     String   // facebook, zalo, instagram
+  platformName String   // e.g., "Zalo OA", "FB Messenger"
+  status       String   @default("disconnected") // connected, disconnected
+  accessToken  String?  @db.Text
+  accountInfo  String?  @db.Text // JSON string for profile info
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?     @db.Text
+  price       Decimal     @db.Decimal(10, 2)
+  stock       Int         @default(0)
+  imageUrl    String?     @db.Text
+  status      String      @default("active") // active, inactive
+  categoryId  Int
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Customer {
+  id             Int            @id @default(autoincrement())
+  fullName       String
+  phone          String?        @unique
+  email          String?        @unique
+  address        String?        @db.Text
+  socialPlatform String? // facebook, zalo, tiktok
+  socialId       String?
+  rank           String         @default("SILVER") // SILVER, GOLD, PLATINUM
+  orders         Order[]
+  conversations  Conversation[]
+  notes          CustomerNote[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model CustomerNote {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  content    String   @db.Text
+  staffName  String?  // Name of staff who created the note
+  createdAt  DateTime @default(now())
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  customerId Int
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  totalAmount Decimal     @db.Decimal(10, 2)
+  status     String      @default("pending") // pending, confirmed, shipping, completed, cancelled
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+}
+
+model Conversation {
+  id         Int       @id @default(autoincrement())
+  customerId Int
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  messages   Message[]
+  lastMessage String?   @db.Text
+  isTyping   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderType     String // customer, staff, bot
+  content        String       @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model ChatbotLog {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  prompt         String   @db.Text
+  response       String   @db.Text
+  tokensUsed     Int?
+  status         String   @default("success") // success, hand-off, failure
+  channel        String?  // facebook, zalo, web
+  createdAt      DateTime @default(now())
+}
