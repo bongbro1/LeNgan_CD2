@@ -17,7 +17,7 @@ const generateReply = async (messages, config = {}) => {
     const response = await openai.chat.completions.create({
       model: model,
       messages: messages,
-      temperature: 0.7,
+      temperature: 0.1,
       max_tokens: maxTokens
     });
 

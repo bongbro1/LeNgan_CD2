@@ -23,7 +23,7 @@ async function main() {
   console.log('Seeding data...');
 
   // 1. Users
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await bcrypt.hash('123456', 10);
   await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},

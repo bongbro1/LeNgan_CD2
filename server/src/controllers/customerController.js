@@ -70,6 +70,15 @@ const getOne = async (req, res, next) => {
         },
         notes: {
           orderBy: { createdAt: 'desc' }
+        },
+        conversations: {
+          include: {
+            messages: {
+              orderBy: { createdAt: 'asc' }
+            }
+          },
+          orderBy: { updatedAt: 'desc' },
+          take: 1
         }
       },
     });

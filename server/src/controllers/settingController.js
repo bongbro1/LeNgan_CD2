@@ -145,8 +145,10 @@ const testAI = async (req, res, next) => {
     const aiService = require('../services/aiService');
 
     const result = await aiService.generateReply(
-      "Hãy trả lời duy nhất từ 'OK'",
-      "Kiểm tra kết nối hệ thống.",
+      [
+        { role: 'system', content: "Hãy trả lời duy nhất từ 'OK'" },
+        { role: 'user', content: "Kiểm tra kết nối hệ thống." }
+      ],
       {
         apiKey: OPENAI_API_KEY || 'ollama',
         model: DEFAULT_MODEL || 'qwen2.5:3b',

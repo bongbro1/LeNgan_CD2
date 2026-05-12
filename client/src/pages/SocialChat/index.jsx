@@ -142,15 +142,20 @@ const SocialChat = () => {
         // Also update the activeChat with real ID from backend
         setActiveChat(res.conversation);
       } else {
-        result = await axiosClient.post(`/conversations/${activeChat.id}/messages`, {
+        const res = await axiosClient.post(`/conversations/${activeChat.id}/messages`, {
           text,
           sender: 'user'
         });
-        // Replace optimistic message with real one
-        setActiveChat(prev => ({
-          ...prev,
-          messages: prev.messages.map(m => m.id === tempId ? result : m)
-        }));
+        result = res.message;
+        // Chỉ cập nhật toàn bộ nếu ID thay đổi, còn không thì chỉ thay thế tin nhắn tạm
+        if (res.conversation && res.conversation.id !== activeChat.id) {
+          setActiveChat(res.conversation);
+        } else {
+          setActiveChat(prev => ({
+            ...prev,
+            messages: prev.messages.map(m => m.id === tempId ? result : m)
+          }));
+        }
       }
 
       // Update list to show latest message/time

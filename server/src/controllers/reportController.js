@@ -131,6 +131,23 @@ const getReports = async (req, res, next) => {
     });
     const handOffCount = aiStats.find(s => s.status === 'hand-off')?._count || 0;
 
+    const allProducts = await prisma.product.findMany();
+    const inventoryStats = {
+      totalValue: allProducts.reduce((acc, p) => acc + (p.price * p.stock), 0),
+      totalItems: allProducts.reduce((acc, p) => acc + p.stock, 0),
+      lowStock: await prisma.product.findMany({
+        where: { stock: { lt: 10 } },
+        include: { category: true },
+        take: 5,
+        orderBy: { stock: 'asc' }
+      })
+    };
+
+    const platformDistribution = await prisma.customer.groupBy({
+      by: ['socialPlatform'],
+      _count: true
+    });
+
     res.json({
       range,
       ordersByStatus,
@@ -141,7 +158,9 @@ const getReports = async (req, res, next) => {
       aiPerformance: {
         totalRequests: totalAiRequests,
         handOffRate: totalAiRequests > 0 ? Math.round((handOffCount / totalAiRequests) * 100) : 0
-      }
+      },
+      inventoryStats,
+      platformDistribution
     });
   } catch (error) {
     console.error('Report Error:', error);

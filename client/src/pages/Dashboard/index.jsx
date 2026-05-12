@@ -45,8 +45,17 @@ const Dashboard = () => {
         axiosClient.get('/conversations')
       ]);
       setStats(statsRes);
-      setLatestOrders(ordersRes.slice(0, 4));
-      setRecentConvs(convsRes.slice(0, 3));
+      // Fix: /orders trả về { orders: [...], stats: ..., pagination: ... }
+      if (ordersRes && ordersRes.orders) {
+        setLatestOrders(ordersRes.orders.slice(0, 4));
+      } else if (Array.isArray(ordersRes)) {
+        setLatestOrders(ordersRes.slice(0, 4));
+      }
+      
+      // Fix: /conversations trả về mảng trực tiếp
+      if (Array.isArray(convsRes)) {
+        setRecentConvs(convsRes.slice(0, 3));
+      }
     } catch (err) {
       console.error(err);
     } finally {

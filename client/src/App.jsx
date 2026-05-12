@@ -10,6 +10,7 @@ import Chatbot from './pages/Chatbot';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import CustomerSimulator from './pages/CustomerSimulator';
 
 const ProtectedRoute = ({ children }) => {
@@ -23,6 +24,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/simulator/customer" element={<CustomerSimulator />} />
 
         <Route path="/" element={

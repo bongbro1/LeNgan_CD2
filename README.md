@@ -52,3 +52,6 @@ Dự án monorepo cho hệ thống quản lý bán hàng, tích hợp OpenAI API
 
 ### Database
 - Sử dụng Aiven, PlanetScale, hoặc MySQL trên Railway.
+
+
+ollama pull nomic-embed-text:latest

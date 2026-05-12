@@ -47,4 +47,39 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { login, getMe };
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { username } = req.body;
+    const user = await prisma.user.findUnique({ where: { username } });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Tên đăng nhập không tồn tại trong hệ thống.' });
+    }
+
+    res.json({ 
+      message: 'Xác thực thành công. Vui lòng nhập mật khẩu mới cho tài khoản ' + username,
+      canReset: true,
+      username: username
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { username, newPassword } = req.body;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await prisma.user.update({
+      where: { username },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ message: 'Mật khẩu đã được cập nhật thành công!' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, getMe, forgotPassword, resetPassword };

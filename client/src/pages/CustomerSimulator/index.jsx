@@ -30,7 +30,18 @@ const CustomerSimulator = () => {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 150;
+      const lastMessage = messages[messages.length - 1];
+
+      if (isAtBottom || lastMessage?.senderType === 'customer' || messages.length <= 1) {
+        setTimeout(() => {
+          scrollRef.current?.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }, 50);
+      }
     }
   }, [messages]);
 
@@ -49,7 +60,7 @@ const CustomerSimulator = () => {
       // Find or create conversation for this customer
       const conversations = await axiosClient.get('/conversations');
       let conv = conversations.find(c => c.customerId === customer.id);
-      
+
       // If no conversation exists, it will be created by the first message
       // But for simulator, let's assume one exists or we create a dummy state
       if (conv) {
@@ -71,8 +82,17 @@ const CustomerSimulator = () => {
     if (!conversation || conversation.id === 'new') return;
     try {
       const detail = await axiosClient.get(`/conversations/${conversation.id}`);
-      setConversation(detail);
-      setMessages(detail.messages || []);
+
+      // Chỉ cập nhật nếu có sự thay đổi về số lượng tin nhắn hoặc nội dung tin nhắn cuối
+      const newMessages = detail.messages || [];
+      const hasNewMessage = newMessages.length !== messages.length ||
+        (newMessages.length > 0 && messages.length > 0 &&
+          newMessages[newMessages.length - 1].id !== messages[messages.length - 1].id);
+
+      if (hasNewMessage || detail.isTyping !== conversation.isTyping) {
+        setConversation(detail);
+        setMessages(newMessages);
+      }
     } catch (err) {
       console.error('Refresh error:', err);
     }
@@ -95,20 +115,21 @@ const CustomerSimulator = () => {
     try {
       const convId = conversation.id;
       const isNew = convId === 'new';
-      
+
       const res = await axiosClient.post(`/conversations/${isNew ? 'create-from-customer' : convId + '/messages'}`, {
         text,
         sender: 'customer',
         customerId: selectedCustomer.id
       });
 
-      if (isNew) {
-        // res is { conversation, message }
+      if (isNew || (res.conversation && res.conversation.id !== convId)) {
+        // Nếu là hội thoại mới hoàn toàn HOẶC ID bị thay đổi (do tự tạo mới ở backend)
         setConversation(res.conversation);
-        setMessages(res.conversation.messages);
+        setMessages(res.conversation.messages || [res.message]);
       } else {
-        // res is the message object. Replace optimistic with real one.
-        setMessages(prev => prev.map(m => m.id === tempId ? res : m));
+        // Nếu là hội thoại cũ, chỉ cần cập nhật tin nhắn thật thay cho tin nhắn tạm (optimistic)
+        const msg = res.message || res;
+        setMessages(prev => prev.map(m => m.id === tempId ? msg : m));
       }
     } catch (err) {
       console.error('Send error:', err);
@@ -129,7 +150,7 @@ const CustomerSimulator = () => {
           </div>
           <h1 className="text-2xl font-black text-[#1c1e21] mb-2">Facebook Messenger</h1>
           <p className="text-gray-500 text-sm mb-8 font-medium">Giả lập phía khách hàng để kiểm thử Bot</p>
-          
+
           <div className="space-y-3 max-h-[400px] overflow-y-auto px-2 custom-scrollbar">
             {customers.map(c => (
               <button
@@ -184,13 +205,13 @@ const CustomerSimulator = () => {
       </div>
 
       {/* Message Area */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-white custom-scrollbar"
       >
         <div className="flex flex-col items-center py-10 opacity-30">
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-             <MessageCircle size={40} className="text-blue-500" />
+            <MessageCircle size={40} className="text-blue-500" />
           </div>
           <p className="text-sm font-bold">Bắt đầu trò chuyện với Shop</p>
           <p className="text-xs">Facebook Messenger Simulator</p>
@@ -204,18 +225,17 @@ const CustomerSimulator = () => {
                   <div className="w-5 h-5 bg-blue-500 rounded-full"></div>
                 </div>
               )}
-              <div className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm ${
-                msg.senderType === 'customer' 
-                ? 'bg-[#0084ff] text-white' 
-                : 'bg-[#f0f2f5] text-black'
-              }`}>
+              <div className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm ${msg.senderType === 'customer'
+                  ? 'bg-[#0084ff] text-white'
+                  : 'bg-[#f0f2f5] text-black'
+                }`}>
                 <ReactMarkdown
                   components={{
-                    p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-1" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-1" {...props} />,
-                    h1: ({node, ...props}) => <h1 className="text-base font-bold mb-1" {...props} />,
-                    h2: ({node, ...props}) => <h2 className="text-sm font-bold mb-1" {...props} />,
+                    p: ({ node, ...props }) => <p className="mb-1 last:mb-0" {...props} />,
+                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-1" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-1" {...props} />,
+                    h1: ({ node, ...props }) => <h1 className="text-base font-bold mb-1" {...props} />,
+                    h2: ({ node, ...props }) => <h2 className="text-sm font-bold mb-1" {...props} />,
                   }}
                 >
                   {msg.content}
@@ -242,15 +262,43 @@ const CustomerSimulator = () => {
         )}
       </div>
 
+      {/* Test Scenarios Quick Buttons */}
+      <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex gap-2 overflow-x-auto scrollbar-hide shrink-0">
+        <button 
+          onClick={() => setInput("Chào shop, mình cao 1m80, nặng 85kg, mình thích mặc đồ màu đen.")}
+          className="whitespace-nowrap px-3 py-1 bg-white border border-blue-200 text-blue-600 rounded-full text-[11px] font-medium hover:bg-blue-50 transition-colors shadow-sm"
+        >
+          📝 KB1: Ghi nhớ (1m8/85kg)
+        </button>
+        <button 
+          onClick={() => setInput("Tư vấn cho mình mẫu áo nào phù hợp với dáng mình đi.")}
+          className="whitespace-nowrap px-3 py-1 bg-white border border-purple-200 text-purple-600 rounded-full text-[11px] font-medium hover:bg-purple-50 transition-colors shadow-sm"
+        >
+          🧠 KB2: Ký ức (Tư vấn size)
+        </button>
+        <button 
+          onClick={() => setInput("Bên mình có iPhone 15 Pro Max không, giá bao nhiêu?")}
+          className="whitespace-nowrap px-3 py-1 bg-white border border-orange-200 text-orange-600 rounded-full text-[11px] font-medium hover:bg-orange-50 transition-colors shadow-sm"
+        >
+          🔍 KB3: Tìm kiếm (iPhone 15)
+        </button>
+        <button 
+          onClick={() => setInput("Chốt 1 cái iPhone 15 Pro Max. Mình là Trần Văn Admin, SĐT 0988888888, ĐC số 1 Võ Văn Ngân, Thủ Đức.")}
+          className="whitespace-nowrap px-3 py-1 bg-white border border-green-200 text-green-600 rounded-full text-[11px] font-medium hover:bg-green-50 transition-colors shadow-sm"
+        >
+          🛒 KB4: Chốt đơn (Auto-Order)
+        </button>
+      </div>
+
       {/* Input Area */}
       <div className="p-3 bg-white shrink-0">
         <div className="flex items-center gap-2">
           <button className="p-2 text-[#0084ff] hover:bg-gray-100 rounded-full"><Plus size={20} /></button>
           <button className="p-2 text-[#0084ff] hover:bg-gray-100 rounded-full"><Image size={20} /></button>
           <div className="flex-1 bg-[#f0f2f5] rounded-full px-4 py-2 flex items-center gap-2">
-            <input 
-              type="text" 
-              placeholder="Aa" 
+            <input
+              type="text"
+              placeholder="Aa"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}

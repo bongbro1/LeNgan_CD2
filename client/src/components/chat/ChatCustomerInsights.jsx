@@ -1,7 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, History, Info, Sparkles, ChevronRight, TrendingUp, Award, Clock } from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
+import OrderDetailModal from '../orders/OrderDetailModal';
 
 const ChatCustomerInsights = ({ customer, loading }) => {
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+
+  const handleViewOrder = async (order) => {
+    setIsDetailLoading(true);
+    setIsModalOpen(true);
+    try {
+      const detail = await axiosClient.get(`/orders/${order.id}`);
+      setSelectedOrder(detail);
+    } catch (err) {
+      console.error('Error fetching order detail:', err);
+      setSelectedOrder(order);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      await axiosClient.put(`/orders/${id}/status`, { status: newStatus });
+      // Note: This only updates the local modal state, 
+      // the parent component might need a refresh to update the list if needed
+      if (selectedOrder?.id === id) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+    } catch (err) {
+      alert('Lỗi khi cập nhật trạng thái');
+    }
+  };
   if (loading) return (
     <section className="w-80 flex flex-col border-l border-outline-variant/30 bg-surface-container-lowest h-full items-center justify-center">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -42,7 +74,7 @@ const ChatCustomerInsights = ({ customer, loading }) => {
 
             <div className="grid grid-cols-2 gap-md mt-6">
               <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/20">
-                <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest block mb-1">LTV (Tổng mua)</span>
+                <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest block mb-1">Tổng mua</span>
                 <span className="text-sm font-black text-primary">{parseFloat(customer.totalSpent || 0).toLocaleString()}đ</span>
               </div>
               <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/20">
@@ -65,7 +97,11 @@ const ChatCustomerInsights = ({ customer, loading }) => {
           <div className="space-y-md">
             {customer?.orders && customer.orders.length > 0 ? (
               customer.orders.map((order) => (
-                <div key={order.id} className="group bg-white border border-outline-variant/40 rounded-[24px] p-3 flex justify-between items-center hover:border-primary/40 transition-all duration-300 shadow-sm">
+                <div
+                  key={order.id}
+                  onClick={() => handleViewOrder(order)}
+                  className="group bg-white border border-outline-variant/40 rounded-[24px] p-3 flex justify-between items-center hover:border-primary/40 transition-all duration-300 shadow-sm cursor-pointer active:scale-[0.98]"
+                >
                   <div className="min-w-0 flex-1">
                     <span className="text-[11px] font-black text-on-surface truncate tracking-tight block">#ORD-{order.id.toString().padStart(4, '0')}</span>
                     <span className="text-[9px] text-on-surface-variant font-medium mt-1 block">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span>
@@ -114,6 +150,14 @@ const ChatCustomerInsights = ({ customer, loading }) => {
           </div>
         </div>
 
+        {/* Order Detail Modal */}
+        <OrderDetailModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          order={selectedOrder}
+          loading={isDetailLoading}
+          onUpdateStatus={handleUpdateStatus}
+        />
       </div>
     </section>
   );

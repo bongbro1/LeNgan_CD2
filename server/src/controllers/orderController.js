@@ -106,18 +106,25 @@ const getOne = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const { customerId, items } = req.body;
+    const { customerId, items, shippingAddress, shippingPhone, note, discountAmount, shippingFee } = req.body;
 
     // items: [{ productId, quantity, price }]
-    let totalAmount = 0;
+    let subtotal = 0;
     items.forEach(item => {
-      totalAmount += item.price * item.quantity;
+      subtotal += parseFloat(item.price) * parseInt(item.quantity);
     });
+
+    const finalTotal = subtotal + parseFloat(shippingFee || 0) - parseFloat(discountAmount || 0);
 
     const order = await prisma.order.create({
       data: {
         customerId: parseInt(customerId),
-        totalAmount,
+        shippingAddress,
+        shippingPhone,
+        note,
+        totalAmount: finalTotal,
+        discountAmount: parseFloat(discountAmount || 0),
+        shippingFee: parseFloat(shippingFee || 0),
         status: 'pending',
         items: {
           create: items.map(item => ({

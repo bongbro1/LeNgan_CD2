@@ -7,6 +7,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -61,21 +62,34 @@ const Login = () => {
                 <label className="block text-sm font-medium text-on-surface-variant" htmlFor="password">
                   Mật khẩu
                 </label>
-                <a className="text-xs font-semibold text-primary hover:underline transition-all" href="#">
+                <button 
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-xs font-semibold text-primary hover:underline transition-all"
+                >
                   Quên mật khẩu?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline text-[20px]">lock</span>
                 <input
-                  className="w-full pl-[45px] pr-md py-md bg-surface-container-low border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  className="w-full pl-[45px] pr-[45px] py-md bg-surface-container-low border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   id="password"
                   placeholder="••••••••"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-md top-1/2 -translate-y-1/2 text-outline hover:text-on-surface-variant transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
               </div>
             </div>
 
