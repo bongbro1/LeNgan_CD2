@@ -141,39 +141,56 @@ const CustomerSimulator = () => {
 
   if (step === 'login') {
     return (
-      <div className="min-h-screen bg-[#f0f2f5] flex flex-col items-center py-20">
-        <div className="max-w-[400px] w-full bg-white p-8 rounded-2xl shadow-xl border border-outline-variant/30 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#0084ff] to-[#00c6ff] rounded-2xl flex items-center justify-center shadow-lg">
-              <MessageCircle size={40} className="text-white" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center py-20 px-4">
+        <div className="max-w-[440px] w-full bg-white/80 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white text-center">
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/30 rotate-3">
+                <MessageCircle size={44} className="text-white -rotate-3" />
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full"></div>
             </div>
           </div>
-          <h1 className="text-2xl font-black text-[#1c1e21] mb-2">Facebook Messenger</h1>
-          <p className="text-gray-500 text-sm mb-8 font-medium">Giả lập phía khách hàng để kiểm thử Bot</p>
 
-          <div className="space-y-3 max-h-[400px] overflow-y-auto px-2 custom-scrollbar">
+          <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Simulator Mode</h1>
+          <p className="text-gray-500 text-[13px] mb-10 font-semibold uppercase tracking-widest">Phone Shop Bot Testing</p>
+
+          <div className="space-y-3 max-h-[440px] overflow-y-auto px-1 custom-scrollbar pr-2">
+            <div className="text-left mb-4">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn khách hàng giả lập</p>
+            </div>
             {customers.map(c => (
               <button
                 key={c.id}
                 onClick={() => handleLogin(c)}
-                className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl border border-gray-100 transition-all active:scale-[0.98] group"
+                className="w-full flex items-center gap-4 p-4 bg-white/50 hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 rounded-2xl border border-gray-100 transition-all active:scale-[0.98] group"
               >
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 flex items-center justify-center font-black text-lg group-hover:from-blue-600 group-hover:to-blue-500 group-hover:text-white transition-all shadow-sm">
                   {c.fullName.substring(0, 1)}
                 </div>
-                <div className="text-left">
-                  <p className="font-bold text-gray-800">{c.fullName}</p>
-                  <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{c.socialPlatform || 'FACEBOOK'}</p>
+                <div className="text-left flex-1">
+                  <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{c.fullName}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{c.socialPlatform || 'FACEBOOK'}</p>
+                  </div>
                 </div>
+                <ChevronLeft size={18} className="text-gray-300 group-hover:text-blue-500 rotate-180 transition-colors" />
               </button>
             ))}
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
-            <button className="text-[#0084ff] font-bold text-sm hover:underline">Tạo khách hàng giả lập mới</button>
+            <button className="flex items-center justify-center gap-2 w-full py-3 text-blue-600 font-black text-sm hover:bg-blue-50 rounded-xl transition-colors">
+              <Plus size={18} />
+              Tạo khách hàng mới
+            </button>
           </div>
         </div>
-        <p className="mt-12 text-gray-400 text-xs font-medium uppercase tracking-[0.2em]">Customer Simulator Mode</p>
+        <div className="mt-12 flex items-center gap-3 py-2 px-6 bg-white/50 backdrop-blur-sm rounded-full border border-white shadow-sm">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">Developer Environment</p>
+        </div>
       </div>
     );
   }
@@ -226,8 +243,8 @@ const CustomerSimulator = () => {
                 </div>
               )}
               <div className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm ${msg.senderType === 'customer'
-                  ? 'bg-[#0084ff] text-white'
-                  : 'bg-[#f0f2f5] text-black'
+                ? 'bg-[#0084ff] text-white'
+                : 'bg-[#f0f2f5] text-black'
                 }`}>
                 <ReactMarkdown
                   components={{
@@ -262,32 +279,81 @@ const CustomerSimulator = () => {
         )}
       </div>
 
-      {/* Test Scenarios Quick Buttons */}
-      <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex gap-2 overflow-x-auto scrollbar-hide shrink-0">
-        <button 
-          onClick={() => setInput("Chào shop, mình cao 1m80, nặng 85kg, mình thích mặc đồ màu đen.")}
-          className="whitespace-nowrap px-3 py-1 bg-white border border-blue-200 text-blue-600 rounded-full text-[11px] font-medium hover:bg-blue-50 transition-colors shadow-sm"
-        >
-          📝 KB1: Ghi nhớ (1m8/85kg)
-        </button>
-        <button 
-          onClick={() => setInput("Tư vấn cho mình mẫu áo nào phù hợp với dáng mình đi.")}
-          className="whitespace-nowrap px-3 py-1 bg-white border border-purple-200 text-purple-600 rounded-full text-[11px] font-medium hover:bg-purple-50 transition-colors shadow-sm"
-        >
-          🧠 KB2: Ký ức (Tư vấn size)
-        </button>
-        <button 
-          onClick={() => setInput("Bên mình có iPhone 15 Pro Max không, giá bao nhiêu?")}
-          className="whitespace-nowrap px-3 py-1 bg-white border border-orange-200 text-orange-600 rounded-full text-[11px] font-medium hover:bg-orange-50 transition-colors shadow-sm"
-        >
-          🔍 KB3: Tìm kiếm (iPhone 15)
-        </button>
-        <button 
-          onClick={() => setInput("Chốt 1 cái iPhone 15 Pro Max. Mình là Trần Văn Admin, SĐT 0988888888, ĐC số 1 Võ Văn Ngân, Thủ Đức.")}
-          className="whitespace-nowrap px-3 py-1 bg-white border border-green-200 text-green-600 rounded-full text-[11px] font-medium hover:bg-green-50 transition-colors shadow-sm"
-        >
-          🛒 KB4: Chốt đơn (Auto-Order)
-        </button>
+      {/* Premium Quick Actions Grid */}
+      <div className="bg-gray-50/50 border-t border-gray-100 p-4 shrink-0">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Kịch bản nhanh</p>
+          <div className="flex gap-1">
+            <div className="w-1 h-1 bg-blue-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-blue-300 rounded-full"></div>
+            <div className="w-1 h-1 bg-blue-200 rounded-full"></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              id: 'check',
+              label: "Check hàng",
+              icon: <Search size={16} />,
+              text: "Bên mình còn iPhone 15 Pro Max 256GB màu Titan tự nhiên không shop?",
+              desc: "Kiểm tra tồn kho",
+              theme: "from-blue-500/10 to-blue-500/5",
+              iconBg: "bg-blue-500",
+              textCol: "text-blue-700",
+              borderCol: "border-blue-200/50"
+            },
+            {
+              id: 'compare',
+              label: "So sánh",
+              icon: <Info size={16} />,
+              text: "So sánh giúp mình iPhone 15 Pro và Samsung S24 Ultra với.",
+              desc: "Tư vấn cấu hình",
+              theme: "from-purple-500/10 to-purple-500/5",
+              iconBg: "bg-purple-500",
+              textCol: "text-purple-700",
+              borderCol: "border-purple-200/50"
+            },
+            {
+              id: 'price',
+              label: "Báo giá",
+              icon: <MessageCircle size={16} />,
+              text: "iPhone 15 128GB hiện tại giá bao nhiêu? Có chương trình thu cũ đổi mới không?",
+              desc: "Giá & Ưu đãi",
+              theme: "from-orange-500/10 to-orange-500/5",
+              iconBg: "bg-orange-500",
+              textCol: "text-orange-700",
+              borderCol: "border-orange-200/50"
+            },
+            {
+              id: 'order',
+              label: "Chốt đơn",
+              icon: <Send size={16} />,
+              text: "Mình chốt 1 máy iPhone 15 Pro Max. Giao qua số 1 Võ Văn Ngân, Thủ Đức nhé. SĐT: 0988888888",
+              desc: "Đặt hàng nhanh",
+              theme: "from-green-500/10 to-green-500/5",
+              iconBg: "bg-green-500",
+              textCol: "text-green-700",
+              borderCol: "border-green-200/50"
+            }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setInput(item.text)}
+              className={`relative overflow-hidden group p-3 rounded-2xl bg-gradient-to-br ${item.theme} border ${item.borderCol} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 text-left`}
+            >
+              <div className="flex items-center gap-3 relative z-10">
+                <div className={`w-8 h-8 rounded-xl ${item.iconBg} text-white flex items-center justify-center shadow-lg shadow-${item.iconBg.split('-')[1]}-200/50 group-hover:scale-110 transition-transform`}>
+                  {item.icon}
+                </div>
+                <div>
+                  <p className={`text-[12px] font-black ${item.textCol} leading-none mb-1`}>{item.label}</p>
+                  <p className="text-[9px] text-gray-500 font-medium">{item.desc}</p>
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Input Area */}

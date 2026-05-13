@@ -33,6 +33,7 @@ const initVectorStore = async () => {
       id: p.id,
       name: p.name,
       price: p.price,
+      stock: p.stock,
       category: p.category?.name || 'Khác',
       description: p.description || '',
       content: `Tên: ${p.name} | Danh mục: ${p.category?.name || 'Khác'} | Giá: ${p.price} | Mô tả: ${p.description || ''}`,
@@ -76,13 +77,17 @@ const keywordSearch = (query, limit = 5) => {
 
   const scored = productCache.map(p => {
     let score = 0;
+    const nameLower = p.name.toLowerCase();
 
-    // Exact match trong tên (điểm cao nhất)
-    if (p.name.toLowerCase().includes(queryLower)) score += 10;
+    // 1. Match tuyệt đối tên sản phẩm trong query (điểm cao nhất)
+    if (queryLower.includes(nameLower)) score += 20;
+    
+    // 2. Exact match tên (ngược lại - đề phòng query ngắn hơn tên)
+    if (nameLower.includes(queryLower)) score += 10;
 
-    // Từng từ khóa match
+    // 3. Từng từ khóa match
     for (const word of queryWords) {
-      if (p.name.toLowerCase().includes(word)) score += 5;
+      if (nameLower.includes(word)) score += 5;
       if (p.category.toLowerCase().includes(word)) score += 3;
       if (p.searchText.includes(word)) score += 1;
     }
@@ -94,7 +99,7 @@ const keywordSearch = (query, limit = 5) => {
     .filter(p => p.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ id, name, price, content, category }) => ({ id, name, price, content, category }));
+    .map(({ id, name, price, stock, content, category }) => ({ id, name, price, stock, content, category }));
 };
 
 /**
@@ -111,10 +116,19 @@ const searchProducts = async (query, limit = 5) => {
         ...p,
         score: cosineSimilarity(queryVector, p.vector)
       }));
-      return scoredProducts
+
+      // Lọc theo ngưỡng (threshold) - ví dụ > 0.7 mới coi là khớp tốt
+      const highScores = scoredProducts
+        .filter(p => p.score > 0.7)
         .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
-        .map(({ id, name, price, content }) => ({ id, name, price, content }));
+        .slice(0, limit);
+
+      if (highScores.length > 0) {
+        return highScores.map(({ id, name, price, stock, content }) => ({ id, name, price, stock, content }));
+      }
+      
+      // Nếu semantic không có kết quả tốt (score thấp) -> Fallback xuống keyword search
+      console.log(`[Vector] Semantic scores low (<0.7). Falling back to Keyword Search for: "${query}"`);
     }
 
     // Fallback → Keyword Search

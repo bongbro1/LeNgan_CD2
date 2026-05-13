@@ -13,6 +13,7 @@ const detectBodyInfo = (msg) => {
     // Chiều cao: "cao 1m80", "cao 180cm", "cao 1.75m", "1m8", "175cm"
     /cao\s*\d/i,
     /\d+m\d{1,2}/i,
+    /cao\s*\d+[.,]?\d*\s*(m|met)/i,
     /\d{2,3}\s*(cm|xen[- ]?ti)/i,
 
     // Cân nặng: "nặng 85kg", "80 ký", "cân nặng 70", "85kg"
@@ -36,6 +37,23 @@ const detectBodyInfo = (msg) => {
     /(thích|muốn|ưa|hay mặc)\s*(màu|đồ|kiểu|loại|style)/i,
   ];
   return patterns.some(p => p.test(msg));
+};
+
+/**
+ * Phát hiện tin nhắn là chào hỏi hoặc tán gẫu đơn giản
+ */
+const detectGeneralChat = (msg) => {
+  const lower = msg.toLowerCase().trim();
+  const greetings = ['hi', 'hello', 'chào', 'xin chào', 'hey', 'alo', 'ê', 'tư vấn giúp mình', 'ad ơi', 'shop ơi'];
+
+  // Nếu query quá ngắn và nằm trong list greeting
+  if (lower.length < 15 && greetings.some(g => lower.includes(g))) return true;
+
+  // Các câu hỏi chung chung không nhắc tới sản phẩm
+  const generalQuestions = ['bạn là ai', 'shop ở đâu', 'giờ mở cửa', 'liên hệ như nào'];
+  if (generalQuestions.some(q => lower.includes(q))) return true;
+
+  return false;
 };
 
 /**
@@ -241,7 +259,7 @@ const triggerAIReply = async (conversationId, customerMessage) => {
 
     const autoProducts = await searchProducts(customerMessage, 3);
     const productsContext = autoProducts.length > 0
-      ? autoProducts.map(p => `ID:${p.id} - ${p.name} (${p.price}đ)`).join('\n')
+      ? autoProducts.map(p => `ID:${p.id} - ${p.name} (${p.price}đ, kho: ${p.stock || 0})`).join('\n')
       : 'Không tìm thấy.';
 
     // --- BƯỚC 2: PHÁT HIỆN Ý ĐỊNH & THỰC THI TOOL BẰNG CODE ---
@@ -321,19 +339,21 @@ const triggerAIReply = async (conversationId, customerMessage) => {
         baseUrl: configMap.AI_BASE_URL?.replace('/v1', '') || "http://localhost:11434",
       });
 
-      const prompt = `Bạn là Aura, nhân viên tư vấn bán hàng.
+      const prompt = `Bạn là Aura, nhân viên tư vấn bán hàng thân thiện của Shop Điện Thoại.
 [Thông tin khách đã lưu]: ${notesSummary}
-[Sản phẩm tìm được trong kho]:
-${autoProducts.length > 0 ? autoProducts.map(p => `- ${p.name} (ID:${p.id}, giá: ${Number(p.price).toLocaleString('vi-VN')}đ)`).join('\n') : 'Không tìm thấy sản phẩm phù hợp.'}
+[DỮ LIỆU KHO HÀNG (Sản phẩm tìm được)]:
+${autoProducts.length > 0 ? autoProducts.map(p => `- ${p.name} (Giá: ${Number(p.price).toLocaleString('vi-VN')}đ, Tồn kho: ${p.stock || 0})`).join('\n') : 'Không tìm thấy sản phẩm phù hợp trong kho.'}
 [Lịch sử chat]:
 ${history.map(h => `${h.role === 'user' ? 'Khách' : 'Aura'}: ${h.content}`).join('\n')}
 Khách: "${customerMessage}"
 
 QUY TẮC BẮT BUỘC:
-1. CHỈ được nhắc sản phẩm có trong [Sản phẩm tìm được trong kho]. KHÔNG tự bịa.
-2. Nếu không tìm thấy sản phẩm, nói: "Hiện tại shop chưa có sản phẩm này."
-3. Trả lời Tiếng Việt, ngắn gọn (2-3 câu).
-4. Dựa vào [Lịch sử chat] để hiểu ngữ cảnh câu hỏi.
+1. [DỮ LIỆU KHO HÀNG] là nguồn sự thật duy nhất về GIÁ và TỒN KHO. Nếu thông tin trong [Lịch sử chat] khác với [DỮ LIỆU KHO HÀNG], bạn PHẢI dùng thông tin mới nhất từ [DỮ LIỆU KHO HÀNG].
+2. Nếu sản phẩm có trong kho nhưng Tồn kho = 0, hãy báo "Hiện tại sản phẩm này đang tạm hết hàng".
+3. CHỈ được nhắc sản phẩm có trong [DỮ LIỆU KHO HÀNG]. KHÔNG tự bịa giá hay cấu hình.
+4. Nếu khách hỏi về sản phẩm cụ thể mà KHÔNG thấy trong kho, hãy nói: "Hiện tại shop chưa có sản phẩm này. Tôi sẽ kiểm tra lại và báo bạn sau."
+5. Nếu khách chỉ chào hỏi hoặc tán gẫu, hãy trả lời thân thiện và giới thiệu Shop chuyên iPhone, Samsung.
+6. Trả lời Tiếng Việt, ngắn gọn, tự nhiên.
 
 Aura:`;
 
