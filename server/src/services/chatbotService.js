@@ -44,12 +44,14 @@ const detectBodyInfo = (msg) => {
  */
 const detectGeneralChat = (msg) => {
   const lower = msg.toLowerCase().trim();
-  const greetings = ['hi', 'hello', 'chào', 'xin chào', 'hey', 'alo', 'ê', 'tư vấn giúp mình', 'ad ơi', 'shop ơi'];
+  const greetings = [
+    'hi', 'hello', 'chào', 'xin chào', 'hey', 'alo', 'ê', 'tư vấn giúp mình', 'ad ơi', 'shop ơi',
+    'xin chapf', 'xin chao', 'chao ad', 'hi shop'
+  ];
 
-  // Nếu query quá ngắn và nằm trong list greeting
-  if (lower.length < 15 && greetings.some(g => lower.includes(g))) return true;
+  // Nếu query quá ngắn hoặc nằm trong list greeting
+  if (lower.length < 15 && (greetings.some(g => lower.includes(g)) || lower.length < 3)) return true;
 
-  // Các câu hỏi chung chung không nhắc tới sản phẩm
   const generalQuestions = ['bạn là ai', 'shop ở đâu', 'giờ mở cửa', 'liên hệ như nào'];
   if (generalQuestions.some(q => lower.includes(q))) return true;
 
@@ -103,90 +105,119 @@ const extractBodyInfo = (msg) => {
   // Style
   const style = msg.match(/(thích|muốn|hay mặc)\s*(đồ\s+)?(rộng|ôm|fit|oversize|basic|đơn giản|năng động|thanh lịch|sang trọng|trẻ trung|thể thao|công sở|casual)/i);
   if (style) parts.push(`Style: ${style[3] || style[2]}`);
-
   return parts.join(', ') || msg;
+};
+
+/**
+ * PREPROCESSOR: Trích xuất Search Query nguyên chất (De-noising)
+ */
+const extractSearchQuery = (msg) => {
+  let clean = msg.toLowerCase().trim();
+
+  // 1. Loại bỏ các từ thừa/chào hỏi (Stop words)
+  const stopWords = [
+    "chào", "hi", "hello", "ad", "shop", "ơi", "ạ", "cho mình hỏi",
+    "giá", "nhiêu", "bao tiền", "còn", "không", "tư vấn", "giúp", "với", "bên mình"
+  ];
+  stopWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'g');
+    clean = clean.replace(regex, '');
+  });
+
+  clean = clean.replace(/\s+/g, ' ').trim();
+
+  // 2. Trích xuất Brand/Model bằng Regex (mạnh hơn, bắt nhiều từ)
+  const productRegex = /(iphone|samsung|oppo|xiaomi|ipad|macbook|apple watch|pixel)(?:\s+(?:pro|max|ultra|plus|air|mini|fold|flip|tab|s\d+|note\d+|\d+gb|\d+))*/gi;
+  const matches = clean.match(productRegex);
+
+  if (matches) return matches[0].trim();
+
+  // 3. Nếu không match regex, trả về chuỗi đã được clean hoặc null nếu quá ngắn
+  return clean.length > 2 ? clean : null;
+};
+
+/**
+ * CONTEXT BUILDER: Cung cấp dữ liệu kho hàng và kiến thức shop
+ */
+const buildStructuredContext = (products, isGeneralChat = false) => {
+  const shopInfo = `
+- Tên shop: Aura Mobile
+- Địa chỉ: 123 Đường ABC, Quận 1, TP.HCM
+- Giờ mở cửa: 8:00 - 21:00 (Tất cả các ngày)
+- Hotline: 0988.xxx.xxx
+- Chính sách: Bảo hành 12 tháng, 1 đổi 1 trong 30 ngày. Thu cũ đổi mới hỗ trợ lên đến 2 triệu.
+  `;
+
+  if (isGeneralChat) return `[THÔNG TIN SHOP]:${shopInfo}\n[TRẠNG THÁI]: Khách đang trò chuyện xã giao. Hãy trả lời tự nhiên, thân thiện.`;
+
+  if (!products || products.length === 0) {
+    return `[THÔNG TIN SHOP]:${shopInfo}\n[KHO HÀNG]: Hiện không tìm thấy sản phẩm chính xác khách yêu cầu. Hãy gợi ý khách xem các dòng iPhone/Samsung khác hoặc hỏi thêm nhu cầu.`;
+  }
+
+  const compact = products.map(p => ({
+    name: p.name,
+    price: `${Number(p.price).toLocaleString('vi-VN')}đ`,
+    stock: p.stock > 0 ? `Còn ${p.stock} máy` : "Hết hàng",
+    desc: p.content.split('|').pop().trim()
+  }));
+
+  return `[THÔNG TIN SHOP]:${shopInfo}\n[KHO HÀNG THỰC TẾ]:\n${JSON.stringify({ products: compact }, null, 2)}`;
+};
+
+/**
+ * MEMORY BUILDER: Trích xuất trạng thái hội thoại (State)
+ */
+const getConversationState = async (customerId) => {
+  const notes = await prisma.customerNote.findMany({
+    where: { customerId },
+    orderBy: { createdAt: 'desc' },
+    take: 3
+  });
+  return notes.map(n => n.content).join('; ') || 'Khách mới.';
 };
 
 /**
  * Phát hiện ý định chốt đơn
  */
 const detectOrderIntent = (msg) => {
-  const patterns = [
-    // Trực tiếp: "chốt", "mua", "đặt hàng"
-    /\b(chốt|chốt đơn|đặt hàng|đặt mua|đặt đơn|order)\b/i,
-
-    // Gián tiếp: "cho mình 1 cái", "lấy cho mình", "mua giúp"
-    /(cho\s*(mình|tôi|em|t)\s*\d)/i,
-    /(lấy|mua|đặt)\s*(cho\s*)?(mình|tôi|em|t|anh|chị)\b/i,
-    /(lấy|mua)\s*(giúp|hộ|dùm)\b/i,
-
-    // Xác nhận mua: "mình lấy", "t mua", "em mua luôn", "lấy luôn"
-    /(mình|t|tui|tôi|em)\s*(lấy|mua|chốt|book)/i,
-    /(lấy|mua|chốt)\s*(luôn|ngay|nha|nhé|đi|liền)/i,
-
-    // Thanh toán / Ship: "thanh toán", "ship cho mình", "giao hàng"
-    /\b(thanh toán|ship|giao hàng|giao cho|giao tới|giao về)\b/i,
-
-    // Số lượng + sản phẩm: "1 cái iPhone", "2 chiếc"
-    /\d+\s*(cái|chiếc|bộ|đôi|cặp|hộp|thùng|gói|chai|lọ|túi|suất)\b/i,
-  ];
-  return patterns.some(p => p.test(msg));
+  const keywords = ["chốt", "mua", "đặt hàng", "lấy", "order", "giao qua", "giao đến", "sđt"];
+  return keywords.some(k => msg.toLowerCase().includes(k)) && (msg.length > 10);
 };
 
 /**
  * Trích xuất thông tin đơn hàng từ tin nhắn
  */
 const extractOrderInfo = (msg) => {
-  // --- TÊN KHÁCH ---
-  const namePatterns = [
-    /(?:mình là|tên là|tên mình là|tôi là|em là|tên tôi là|anh là|chị là|họ tên)\s+([A-ZÀ-Ỹa-zà-ỹ\s]{2,30}?)(?:\s*[,.\-]|\s+SĐT|\s+sđt|\s+số|\s+đt|\s+ĐT|\s+đc|\s+ĐC|\s+địa|\s+phone|\s+đ\/c|$)/i,
-    /(?:tên|name)\s*:\s*([A-ZÀ-Ỹa-zà-ỹ\s]{2,30}?)(?:\s*[,.\-]|$)/i,
-  ];
-  let customerName = null;
-  for (const p of namePatterns) {
-    const m = msg.match(p);
-    if (m) { customerName = m[1].trim(); break; }
-  }
+  const phoneRegex = /(0[3|5|7|8|9][0-9]{8})\b/g;
+  const addressRegex = /(?:tại|ở|giao qua|giao đến|địa chỉ:?)\s+([^.]+)/i;
+  const nameRegex = /(?:tên là|mình tên|em tên|tên)\s+([A-ZÀ-Ỹ][a-zà-ỹ]*(\s+[A-ZÀ-Ỹ][a-zà-ỹ]*)*)/u;
+  const qtyRegex = /(\d+)\s*(?:máy|cái|chiếc|bộ)/i;
 
-  // --- SỐ ĐIỆN THOẠI ---
-  const phonePatterns = [
-    /(0\d{9,10})/,                          // 0912345678
-    /(\+84\d{9,10})/,                       // +84912345678
-    /(?:SĐT|sđt|số|đt|ĐT|phone|đ\/t|dt)\s*:?\s*(0\d{9,10})/i,
-  ];
-  let phone = null;
-  for (const p of phonePatterns) {
-    const m = msg.match(p);
-    if (m) { phone = m[1]; break; }
-  }
+  const phoneMatch = msg.match(phoneRegex);
+  const addressMatch = msg.match(addressRegex);
+  const nameMatch = msg.match(nameRegex);
+  const qtyMatch = msg.match(qtyRegex);
 
-  // --- ĐỊA CHỈ ---
-  const addressPatterns = [
-    /(?:ĐC|đc|địa chỉ|dc|đ\/c|address|giao tới|giao đến|giao về|giao cho|ship tới|ship về|ship cho|ship đến|giao hàng tại|giao hàng về|ở)\s*:?\s*((?:số\s*)?\d+.*?)(?:\.|;|$)/i,
-    /(?:tại|ở)\s+((?:số\s*)?\d+[^,.;]*)/i,
-  ];
-  let address = null;
-  for (const p of addressPatterns) {
-    const m = msg.match(p);
-    if (m) { address = m[1].trim(); break; }
-  }
-
-  // --- SỐ LƯỢNG ---
-  const qtyPatterns = [
-    /(\d+)\s*(?:cái|chiếc|bộ|đôi|cặp|hộp|thùng|gói|chai|lọ|túi|suất)/i,
-    /(một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười)\s*(?:cái|chiếc|bộ|đôi)/i,
-  ];
   let quantity = 1;
-  for (const p of qtyPatterns) {
-    const m = msg.match(p);
-    if (m) {
-      const wordToNum = { 'một': 1, 'hai': 2, 'ba': 3, 'bốn': 4, 'năm': 5, 'sáu': 6, 'bảy': 7, 'tám': 8, 'chín': 9, 'mười': 10 };
-      quantity = wordToNum[m[1].toLowerCase()] || parseInt(m[1]);
-      break;
+  if (qtyMatch) {
+    quantity = parseInt(qtyMatch[1]);
+  } else {
+    // Thử tìm các từ chỉ số lượng đơn giản
+    const wordToNum = { 'một': 1, 'hai': 2, 'ba': 3, 'bốn': 4, 'năm': 5 };
+    for (const [word, num] of Object.entries(wordToNum)) {
+      if (msg.toLowerCase().includes(word)) {
+        quantity = num;
+        break;
+      }
     }
   }
 
-  return { customerName, phone, address, quantity };
+  return {
+    customerName: nameMatch ? nameMatch[1] : null,
+    phone: phoneMatch ? phoneMatch[0] : null,
+    address: addressMatch ? addressMatch[1].trim() : null,
+    quantity
+  };
 };
 
 /**
@@ -237,129 +268,99 @@ const triggerAIReply = async (conversationId, customerMessage) => {
 
     const customerId = conversation.customerId;
     let toolLogs = [];
-    let toolContext = ''; // Kết quả tool sẽ được inject vào prompt cho AI
 
-    // --- BƯỚC 1: LẤY DỮ LIỆU NỀN ---
+    // --- BƯỚC 1: TIỀN XỬ LÝ (PRE-PROCESSOR) ---
+    const searchQuery = extractSearchQuery(customerMessage);
+    const isGeneralChat = detectGeneralChat(customerMessage);
+    const customerState = await getConversationState(customerId);
+
     const pastMessages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'desc' },
-      take: 6
+      take: 2 // Chỉ lấy 2 tin nhắn gần nhất để AI tập trung tối đa, tránh "rác" context
     });
     const history = pastMessages.reverse().map(m => ({
       role: m.senderType === 'customer' ? 'user' : 'assistant',
       content: m.content
     }));
 
-    const customerNotes = await prisma.customerNote.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-      take: 5
-    });
-    const notesSummary = customerNotes.map(n => n.content).join('; ') || 'Chưa có.';
+    // --- BƯỚC 2: TRUY XUẤT (RETRIEVAL) ---
+    let autoProducts = [];
+    if (!isGeneralChat && searchQuery) {
+      autoProducts = await searchProducts(searchQuery, 2);
+      if (autoProducts.length > 0) {
+        toolLogs.push({ tool: 'auto_search', input: searchQuery, result: `Found ${autoProducts.length} items` });
+      }
+    }
+    const structuredInventory = buildStructuredContext(autoProducts, isGeneralChat);
 
-    const autoProducts = await searchProducts(customerMessage, 3);
-    const productsContext = autoProducts.length > 0
-      ? autoProducts.map(p => `ID:${p.id} - ${p.name} (${p.price}đ, kho: ${p.stock || 0})`).join('\n')
-      : 'Không tìm thấy.';
-
-    // --- BƯỚC 2: PHÁT HIỆN Ý ĐỊNH & THỰC THI TOOL BẰNG CODE ---
-
-    // 2a. Phát hiện khai vóc dáng → Ghi chú tự động
+    // --- BƯỚC 3: PHÁT HIỆN Ý ĐỊNH & TOOL (DETERMINISTIC) ---
     if (detectBodyInfo(customerMessage)) {
       const noteContent = extractBodyInfo(customerMessage);
       await prisma.customerNote.create({
         data: { customerId, content: noteContent, staffName: 'Aura Agent' }
       });
-      toolContext += `[HỆ THỐNG] Đã tự động lưu ghi chú: "${noteContent}"\n`;
       toolLogs.push({ tool: 'add_customer_note', input: noteContent, result: 'OK' });
-      console.log(`[Agent] AUTO NOTE: ${noteContent}`);
     }
 
-    // 2b. Phát hiện ý định chốt đơn → Tạo đơn tự động
+    let orderLog = null;
     if (detectOrderIntent(customerMessage)) {
       const orderInfo = extractOrderInfo(customerMessage);
-
-      // Tìm sản phẩm được nhắc đến
-      let targetProduct = null;
-      if (autoProducts.length > 0) {
-        targetProduct = autoProducts[0]; // Lấy sản phẩm khớp nhất
-      }
-
-      if (targetProduct && orderInfo.customerName && orderInfo.phone) {
-        const result = await executeOrder(
-          customerId,
-          targetProduct.id,
-          orderInfo.quantity,
-          orderInfo.customerName,
-          orderInfo.phone,
-          orderInfo.address
-        );
-        toolContext += `[HỆ THỐNG] ${result.msg}\n`;
-        toolLogs.push({
+      if (orderInfo.phone && orderInfo.address) {
+        orderLog = {
           tool: 'create_order',
-          input: JSON.stringify({ productId: targetProduct.id, ...orderInfo }),
-          result: result.msg
-        });
-        console.log(`[Agent] AUTO ORDER: ${result.msg}`);
-      } else if (targetProduct && (!orderInfo.customerName || !orderInfo.phone)) {
-        toolContext += `[HỆ THỐNG] Khách muốn mua ${targetProduct.name} nhưng thiếu thông tin (Tên/SĐT/Địa chỉ). Hãy hỏi lại.\n`;
+          input: orderInfo,
+          result: `Đã tạo đơn hàng cho ${orderInfo.customerName || 'Khách hàng'} - SĐT: ${orderInfo.phone}`
+        };
+        toolLogs.push(orderLog);
+
+        if (autoProducts.length > 0) {
+          const result = await executeOrder(customerId, autoProducts[0].id, orderInfo.quantity, orderInfo.customerName, orderInfo.phone, orderInfo.address);
+          orderLog.result = result.msg;
+        }
       }
     }
 
-    if (autoProducts.length > 0) {
-      toolLogs.push({ tool: 'auto_search', result: `Tìm thấy ${autoProducts.length} sản phẩm.` });
-    }
-
-    // --- BƯỚC 3: TẠO CÂU TRẢ LỜI ---
+    // --- BƯỚC 4: TẠO CÂU TRẢ LỜI (GENERATION) ---
     let finalContent = '';
-
-    // Nếu có action quan trọng → dùng template (không tin AI)
-    const orderLog = toolLogs.find(t => t.tool === 'create_order');
-    const noteLog = toolLogs.find(t => t.tool === 'add_customer_note');
+    // Đã có orderLog từ Bước 3 nếu tạo đơn thành công
 
     if (orderLog) {
-      // Đã chốt đơn → trả lời xác nhận
-      finalContent = `✅ ${orderLog.result}\nCảm ơn bạn đã đặt hàng! Shop sẽ liên hệ xác nhận sớm nhất ạ. Bạn cần mua thêm gì không?`;
-    } else if (noteLog && !orderLog) {
-      // Đã ghi nhớ thông tin → trả lời + gợi ý sản phẩm
-      const productList = autoProducts.length > 0
-        ? autoProducts.map(p => `- ${p.name} (${Number(p.price).toLocaleString('vi-VN')}đ)`).join('\n')
-        : '';
-      finalContent = `📝 Đã ghi nhớ: ${noteLog.input}`;
-      if (productList) {
-        finalContent += `\n\nDựa vào thông tin của bạn, shop gợi ý:\n${productList}\nBạn quan tâm sản phẩm nào ạ?`;
-      } else {
-        finalContent += `\nBạn đang tìm kiếm sản phẩm gì ạ?`;
-      }
+      finalContent = `✅ ${orderLog.result}\nCảm ơn bạn đã đặt hàng! Shop sẽ liên hệ xác nhận sớm nhất ạ.`;
     } else {
-      // Không có action → gọi AI viết câu trả lời
+      // Gọi AI với Structured Context & Strict Grounding
       const model = new ChatOllama({
         model: configMap.DEFAULT_MODEL || "qwen2.5:3b",
-        temperature: 0.3,
+        temperature: 0.1, // Thấp nhất để chống hallucination
         baseUrl: configMap.AI_BASE_URL?.replace('/v1', '') || "http://localhost:11434",
       });
 
-      const prompt = `Bạn là Aura, nhân viên tư vấn bán hàng thân thiện của Shop Điện Thoại.
-[Thông tin khách đã lưu]: ${notesSummary}
-[DỮ LIỆU KHO HÀNG (Sản phẩm tìm được)]:
-${autoProducts.length > 0 ? autoProducts.map(p => `- ${p.name} (Giá: ${Number(p.price).toLocaleString('vi-VN')}đ, Tồn kho: ${p.stock || 0})`).join('\n') : 'Không tìm thấy sản phẩm phù hợp trong kho.'}
-[Lịch sử chat]:
+      const prompt = `Bạn là Aura - Trợ lý bán hàng thông minh, thân thiện và am hiểu công nghệ của Aura Mobile.
+
+[NGỮ CẢNH HỆ THỐNG]:
+${structuredInventory}
+
+[TRẠNG THÁI KHÁCH HÀNG]: ${customerState}
+
+[LỊCH SỬ TRÒ CHUYỆN]:
 ${history.map(h => `${h.role === 'user' ? 'Khách' : 'Aura'}: ${h.content}`).join('\n')}
 Khách: "${customerMessage}"
 
-QUY TẮC BẮT BUỘC:
-1. [DỮ LIỆU KHO HÀNG] là nguồn sự thật duy nhất về GIÁ và TỒN KHO. Nếu thông tin trong [Lịch sử chat] khác với [DỮ LIỆU KHO HÀNG], bạn PHẢI dùng thông tin mới nhất từ [DỮ LIỆU KHO HÀNG].
-2. Nếu sản phẩm có trong kho nhưng Tồn kho = 0, hãy báo "Hiện tại sản phẩm này đang tạm hết hàng".
-3. CHỈ được nhắc sản phẩm có trong [DỮ LIỆU KHO HÀNG]. KHÔNG tự bịa giá hay cấu hình.
-4. Nếu khách hỏi về sản phẩm cụ thể mà KHÔNG thấy trong kho, hãy nói: "Hiện tại shop chưa có sản phẩm này. Tôi sẽ kiểm tra lại và báo bạn sau."
-5. Nếu khách chỉ chào hỏi hoặc tán gẫu, hãy trả lời thân thiện và giới thiệu Shop chuyên iPhone, Samsung.
-6. Trả lời Tiếng Việt, ngắn gọn, tự nhiên.
+HƯỚNG DẪN TRẢ LỜI:
+1. TRỌNG TÂM: Chỉ trả lời đúng câu hỏi hiện tại của khách. KHÔNG nhắc lại các thông tin của câu hỏi trước đó (ví dụ: khách hỏi địa chỉ thì không được nhắc lại trà sữa hay cấu hình máy ở câu trước).
+2. KHÔNG VOUCHER: Tuyệt đối không được bịa ra mã giảm giá, voucher hoặc chương trình khuyến mãi nếu không thấy trong [THÔNG TIN SHOP].
+3. XƯNG HÔ: "Dạ, em" hoặc "Aura" thân thiện. Tuyệt đối không dùng "Alo".
+4. NGẮN GỌN: Trả lời tối đa 3-4 câu. Không viết sớ dài.
 
+Hãy trả lời khách hàng một cách thông minh và lôi cuốn:
 Aura:`;
 
       const response = await model.invoke(prompt);
-      finalContent = response.content.replace(/^Aura:\s*/i, '').trim();
-      finalContent = finalContent.replace(/\[TOOL:.*?\]/g, '').trim();
+      finalContent = response.content
+        .replace(/^Aura:\s*/gi, '')
+        .replace(/^Alo,?\s*/gi, '')
+        .replace(/^Dạ,?\s*Alo,?\s*/gi, 'Dạ, ')
+        .trim();
     }
 
     // --- BƯỚC 4: LƯU & PHẢN HỒI ---

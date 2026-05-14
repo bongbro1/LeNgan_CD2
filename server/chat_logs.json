@@ -1,133 +1,115 @@
 [
   {
-    "timestamp": "2026-05-13T16:39:06.046Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:34:29.479Z",
+    "conversationId": 128,
     "sender": "customer",
-    "content": "hi",
+    "content": "iPhone 15 128GB giá nhiêu em",
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:09.168Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:34:38.912Z",
+    "conversationId": 128,
     "sender": "bot",
-    "content": "Chào bạn! Hiện tại shop chưa có sản phẩm này. Tôi sẽ kiểm tra lại và liên hệ với bạn khi có sẵn.",
+    "content": "Dạ, iPhone 15 128GB giá là 22.990.000đ. Sản phẩm còn lại trong kho là 7 máy. Dạ, có thể bạn sẽ được giảm thêm 10% với mã giảm giá VOUCHER10-UJ8SGM.",
     "tools": [
       {
         "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
+        "input": "iphone 15 128gb",
+        "result": "Found 2 items"
       }
     ],
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:22.709Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:34:48.592Z",
+    "conversationId": 128,
     "sender": "customer",
     "content": "Bên mình còn iPhone 15 Pro Max 256GB màu Titan tự nhiên không shop?",
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:23.820Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:34:50.225Z",
+    "conversationId": 128,
     "sender": "bot",
-    "content": "Hiện tại shop chưa có sản phẩm này. Tôi sẽ kiểm tra lại và liên hệ với bạn khi có sẵn.",
+    "content": "Dạ, chúng tôi có iPhone 15 Pro Max 256GB màu Titan tự nhiên trong kho với số lượng còn lại là 31 máy. Dạ, bạn có thể được giảm thêm 10% với mã giảm giá VOUCHER10-UJ8SGM.",
     "tools": [
       {
         "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
+        "input": "iphone 15 pro max 256gb",
+        "result": "Found 2 items"
       }
     ],
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:27.348Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:01.803Z",
+    "conversationId": 128,
     "sender": "customer",
     "content": "So sánh giúp mình iPhone 15 Pro và Samsung S24 Ultra với.",
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:32.347Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:03.649Z",
+    "conversationId": 128,
     "sender": "bot",
-    "content": "Xin lỗi, hiện tại shop không có sản phẩm iPhone 15 Pro Max 256GB màu Titan tự nhiên. Tôi sẽ kiểm tra lại và liên hệ với bạn khi có sẵn. Về so sánh giữa iPhone 15 Pro và Samsung S24 Ultra, hai sản phẩm này đều là flagship của hãng, nhưng iPhone 15 Pro có màn hình lớn hơn và hệ thống camera tốt hơn một chút. Còn Samsung S24 Ultra thì mạnh ở khả năng chụp đêm và hiệu suất đồ họa. Bạn cần tư vấn về các sản phẩm nào khác không?",
+    "content": "Dạ, iPhone 15 Pro Max có màn hình Super Retina XDR lớn hơn, độ sáng cao hơn và hỗ trợ sạc nhanh MagSafe. Trong khi đó, Samsung S24 Ultra nổi bật với camera chính 60MP và khả năng làm đẹp ảnh tốt hơn. Bạn có thể cân nhắc nhu cầu sử dụng của mình để đưa ra quyết định phù hợp.",
     "tools": [
       {
         "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
+        "input": "iphone 15 pro",
+        "result": "Found 2 items"
       }
     ],
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:54.861Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:14.657Z",
+    "conversationId": 128,
     "sender": "customer",
     "content": "iPhone 15 128GB hiện tại giá bao nhiêu? Có chương trình thu cũ đổi mới không?",
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:39:56.303Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:16.255Z",
+    "conversationId": 128,
     "sender": "bot",
-    "content": "iPhone 15 128GB hiện tại giá là 19.990.000đ. Shop có chương trình thu cũ đổi mới, bạn có muốn biết thêm thông tin về chương trình này không?",
+    "content": "Dạ, iPhone 15 128GB hiện tại giá là 22.990.000đ. Chúng tôi có chương trình thu cũ đổi mới hỗ trợ lên đến 2 triệu đồng. Bạn cần giúp đỡ thêm về sản phẩm này không?",
     "tools": [
       {
         "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
+        "input": "iphone 15 128gb",
+        "result": "Found 2 items"
       }
     ],
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:46:05.613Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:23.870Z",
+    "conversationId": 128,
     "sender": "customer",
-    "content": "Bên mình còn iPhone 15 Pro Max 256GB màu Titan tự nhiên không shop?",
+    "content": "Mình chốt 1 máy iPhone 15 Pro Max. Giao qua số 1 Võ Văn Ngân, Thủ Đức nhé. SĐT: 0988888888",
     "customerId": 601
   },
   {
-    "timestamp": "2026-05-13T16:46:09.280Z",
-    "conversationId": 125,
+    "timestamp": "2026-05-14T03:35:24.149Z",
+    "conversationId": 128,
     "sender": "bot",
-    "content": "Chào bạn! Hiện tại shop chưa có iPhone 15 Pro Max 256GB màu Titan tự nhiên. Tôi sẽ kiểm tra lại và báo bạn sau. Bạn cần tư vấn về sản phẩm khác không? Shop chuyên cung cấp các dòng điện thoại Apple như iPhone, Samsung.",
+    "content": "✅ Đã tạo đơn hàng #1216 cho iPhone 15 Pro Max 256GB (34990000đ x1).\nCảm ơn bạn đã đặt hàng! Shop sẽ liên hệ xác nhận sớm nhất ạ.",
     "tools": [
       {
         "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
-      }
-    ],
-    "customerId": 601
-  },
-  {
-    "timestamp": "2026-05-13T16:46:30.621Z",
-    "conversationId": 125,
-    "sender": "customer",
-    "content": "Bên mình còn iPhone 15 128GB không shop?",
-    "customerId": 601
-  },
-  {
-    "timestamp": "2026-05-13T16:46:34.416Z",
-    "conversationId": 125,
-    "sender": "bot",
-    "content": "Chào bạn! Hiện tại shop còn iPhone 15 128GB. Giá sản phẩm là 19.990.000đ. Bạn cần tư vấn thêm về chương trình thu cũ đổi mới không? Shop chuyên cung cấp các dòng điện thoại Apple như iPhone, Samsung.",
-    "tools": [
+        "input": "iphone 15 pro max",
+        "result": "Found 2 items"
+      },
       {
-        "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
-      }
-    ],
-    "customerId": 601
-  },
-  {
-    "timestamp": "2026-05-13T16:48:59.742Z",
-    "conversationId": 125,
-    "sender": "bot",
-    "content": "Chào bạn! Hiện tại shop còn iPhone 15 128GB. Giá sản phẩm là 19.990.000đ. Bạn cần tư vấn thêm về chương trình thu cũ đổi mới không? Shop chuyên cung cấp các dòng điện thoại Apple như iPhone, Samsung.",
-    "tools": [
-      {
-        "tool": "auto_search",
-        "result": "Tìm thấy 3 sản phẩm."
+        "tool": "create_order",
+        "input": {
+          "customerName": null,
+          "phone": "0988888888",
+          "address": "số 1 Võ Văn Ngân, Thủ Đức nhé",
+          "quantity": 1
+        },
+        "result": "Đã tạo đơn hàng #1216 cho iPhone 15 Pro Max 256GB (34990000đ x1)."
       }
     ],
     "customerId": 601

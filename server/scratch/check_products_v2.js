@@ -3,7 +3,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   const products = await prisma.product.findMany({
-    where: { name: { contains: 'iPhone 15' } },
+    where: { OR: [
+      { name: { contains: 'iPhone 15 Pro' } },
+      { name: { contains: 'Samsung S24' } }
+    ] },
     select: { id: true, name: true, price: true, stock: true, status: true }
   });
   console.log(JSON.stringify(products, null, 2));
